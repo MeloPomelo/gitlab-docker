@@ -1,0 +1,49 @@
+version: '3.6'  
+
+services:                                                    
+  gitlab-dev:                                             # Создание контейнера с gitlab
+    image: gitlab/gitlab-ce:16.2.8-ce.0 
+    container_name: gitlab-dev
+    networks:
+      - dev-net
+    restart: always                        
+    hostname: 'localhost'         
+    environment:                                         # Добавление в конфиг url инстансов giltab и container-registry
+      GITLAB_OMNIBUS_CONFIG: |                           # Так как контенеры находятся в одной докер сети вместо локалхост указываем имена контенеров
+        external_url 'http://gitlab-dev:8929'                   
+        registry_external_url "http://gitlab-dev:5050"
+    ports:                                               # Открываем порты giltab и container-registry
+      - 8929:8929 
+      - 5050:5050 
+    volumes:                                             # Монтируем директории с данными gitlab
+      - ./gitlab/config:/etc/gitlab   
+      - ./gitlab/logs:/var/log/gitlab 
+      - ./gitlab/data:/var/opt/gitlab   
+
+  gitlab-runner:                                         # Создание контейнера с gitlab-runner
+    image: gitlab/gitlab-runner:ubuntu-v16.4.0
+    container_name: gitlab-runner    
+    networks:
+      - dev-net
+    restart: always                            
+    volumes:                                            # Монтируем директории с данными gitlab-runner
+      - ./runner/config:/etc/gitlab-runner 
+      - /var/run/docker.sock:/var/run/docker.sock 
+
+  sonarqube:                                            # Создание контейнера c sonarqube
+    image: sonarqube:9.9.2-community
+    container_name: sonarqube
+    networks:
+      - dev-net
+    restart: always                    
+    hostname: 'localhost'    
+    ports:                                             # Открываем порт для доступа к sonarqube
+      - 9000:9000         
+    volumes:                                           # Монтируем директории с данными sonarqube
+      - './sonarqube/sonarqube_data:/opt/sonarqube/data'             
+      - './sonarqube/sonarqube_extensions:/opt/sonarqube/extensions'  
+      - './sonarqube/sonarqube_logs:/opt/sonarqube/logs'         
+
+networks:                                              # Объявление докер сети с драйвером bridge 
+  dev-net:
+    external: true
